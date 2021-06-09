@@ -84,6 +84,11 @@ int Cast::forward(const Mat& bottom_blob, Mat& top_blob, const Option& opt) cons
         // bfloat16
         out_elemsize = 2 * elempack;
     }
+    else if (type_to == 7)
+    {
+        //int64
+        out_elemsize = 8 * elempack;
+    }
 
     if (dims == 1)
     {
@@ -176,6 +181,36 @@ int Cast::forward(const Mat& bottom_blob, Mat& top_blob, const Option& opt) cons
             }
         }
     }
+
+    if (type_from == 1 && type_to == 7)
+    {
+        #pragma omp parallel for num_threads(opt.num_threads)
+        for (int q = 0; q < channels; q++)
+        {
+            const float* ptr = bottom_blob.channel(q);
+            long long* outptr = top_blob.channel(q);
+
+            for (int i = 0; i < size; i++)
+            {
+                outptr[i] = (long long) ptr[i];
+            }
+        }
+    }
+    if (type_from == 7 && type_to == 1)     
+    {
+        #pragma omp parallel for num_threads(opt.num_threads)
+        for (int q = 0; q < channels; q++)
+        {
+            const long long* ptr = bottom_blob.channel(q);
+            float* outptr = top_blob.channel(q);
+
+            for (int i = 0; i < size; i++)
+            {
+                outptr[i] = (float) ptr[i];
+            }
+        }
+    }
+
 
     // TODO more cast type
 
